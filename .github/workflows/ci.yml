@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.so }}
+
+    # bash nos tres sistemas: no Windows o shell padrao e o PowerShell, e ele
+    # desmonta "-Dexec.args=..." em dois argumentos antes de o Maven ver.
+    defaults:
+      run:
+        shell: bash
+
+    strategy:
+      fail-fast: false
+      matrix:
+        so: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Testes
+        run: mvn -B -ntp verify
+
+      - name: as leis de controle contra o teorema de Chiu e Jain
+        run: mvn -B -ntp -q exec:java -Dexec.args="correcao"
+
+      - name: quantas rodadas cada lei leva para dividir igual
+        run: mvn -B -ntp -q exec:java -Dexec.args="convergencia"
+
+      - name: o que o fator de queda custa em eficiencia
+        run: mvn -B -ntp -q exec:java -Dexec.args="eficiencia"
+
+      - name: o serrote contra a formula da vazao
+        run: mvn -B -ntp -q exec:java -Dexec.args="formula"
+
+      - name: dois fluxos com tempos de ida e volta diferentes
+        run: mvn -B -ntp -q exec:java -Dexec.args="ida-e-volta"
+
+      - name: Relatorios de teste
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-${{ matrix.so }}
+          path: target/surefire-reports
